@@ -101,7 +101,7 @@ function DashboardPage({ title, collection }) {
   useEffect(() => {
     const id = setInterval(() => {
       fetchData();
-    }, 5 * 60 * 1000);
+    }, 2 * 60 * 1000);
     return () => clearInterval(id);
   }, [fetchData]);
 
