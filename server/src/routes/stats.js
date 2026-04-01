@@ -547,5 +547,43 @@ router.get('/:collection/statistics', async (req, res, next) => {
   }
 });
 
+router.get('/:collection/dates', async (req, res, next) => {
+  try {
+    const collectionName = getCollectionName(req.params.collection);
+    const db = getDb();
+    const collection = db.collection(collectionName);
+
+    const matchStage = buildTimeRangeMatch(req.query);
+
+    const pipeline = [
+      Object.keys(matchStage).length ? { $match: matchStage } : null,
+      {
+        $group: {
+          _id: {
+            $dateTrunc: {
+              date: '$anchor_ts',
+              unit: 'day',
+              timezone: 'UTC'
+            }
+          }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ].filter(Boolean);
+
+    const docs = await collection.aggregate(pipeline).toArray();
+    const dates = docs
+      .map((d) => (d._id instanceof Date ? d._id.toISOString().slice(0, 10) : null))
+      .filter(Boolean);
+
+    res.json({
+      collection: collectionName,
+      dates
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
 

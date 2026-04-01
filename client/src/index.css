@@ -93,6 +93,12 @@ body {
   gap: 0.75rem;
 }
 
+.controls-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
 label {
   font-size: 0.85rem;
   color: #e5e7eb;
@@ -119,6 +125,105 @@ button {
 
 button:hover {
   filter: brightness(1.05);
+}
+
+.date-picker {
+  position: relative;
+}
+
+.date-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #020617;
+  color: #e5e7eb;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  padding: 0.35rem 0.7rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.date-toggle-icon {
+  font-size: 0.75rem;
+}
+
+.calendar-popover {
+  position: absolute;
+  top: 2.1rem;
+  right: 0;
+  z-index: 20;
+}
+
+.calendar {
+  background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.9), #020617 70%);
+  border-radius: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  padding: 0.5rem 0.6rem 0.6rem;
+  font-size: 0.75rem;
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+  color: #e5e7eb;
+}
+
+.calendar-nav {
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0 0.2rem;
+  font-size: 0.8rem;
+}
+
+.calendar-nav:hover {
+  color: #e5e7eb;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1.4rem);
+  gap: 0.2rem;
+  justify-content: center;
+}
+
+.calendar-dow {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 0.7rem;
+}
+
+.calendar-day {
+  height: 1.4rem;
+  border-radius: 0.4rem;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #e5e7eb;
+  font-size: 0.7rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.calendar-day.empty {
+  cursor: default;
+}
+
+.calendar-day.has-data {
+  border-color: rgba(34, 197, 94, 0.7);
+  background: radial-gradient(circle at top, rgba(34, 197, 94, 0.18), transparent 70%);
+}
+
+.calendar-day.selected {
+  border-color: transparent;
+  background: linear-gradient(135deg, #4f46e5, #06b6d4);
+  color: white;
 }
 
 .summary-grid {

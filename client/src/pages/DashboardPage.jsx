@@ -4,12 +4,14 @@ import SummaryCards from '../components/SummaryCards.jsx';
 import StreakCards from '../components/StreakCards.jsx';
 import TimeseriesChart from '../components/TimeseriesChart.jsx';
 import StatisticsTable from '../components/StatisticsTable.jsx';
+import DateCalendar from '../components/DateCalendar.jsx';
 
 function DashboardPage({ title, collection }) {
   const [summary, setSummary] = useState(null);
   const [timeseries, setTimeseries] = useState([]);
   const [streaks, setStreaks] = useState(null);
   const [statistics, setStatistics] = useState([]);
+  const [scope, setScope] = useState('day'); // 'day' | 'all'
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -19,9 +21,11 @@ function DashboardPage({ title, collection }) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [availableDates, setAvailableDates] = useState([]);
+  const [showCalendar, setShowCalendar] = useState(false);
 
   function buildRangeParams() {
-    if (!selectedDate) {
+    if (scope !== 'day' || !selectedDate) {
       return '';
     }
     const base = new Date(`${selectedDate}T00:00:00`);
@@ -67,6 +71,12 @@ function DashboardPage({ title, collection }) {
       }
       const statsJson = await statsRes.json();
 
+      const datesRes = await fetch(`/api/${collection}/dates`);
+      if (!datesRes.ok) {
+        throw new Error(`Dates request failed with ${datesRes.status}`);
+      }
+      const datesJson = await datesRes.json();
+
       setSummary(summaryJson.summary);
       setTimeseries(tsJson.points || []);
       setStreaks({
@@ -74,6 +84,7 @@ function DashboardPage({ title, collection }) {
         maxLoss: streaksJson.maxLoss
       });
       setStatistics(statsJson.buckets || []);
+      setAvailableDates(datesJson.dates || []);
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error(err);
@@ -86,7 +97,7 @@ function DashboardPage({ title, collection }) {
   useEffect(() => {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [collection, selectedDate]);
+  }, [collection, selectedDate, scope]);
 
   return (
     <div className="dashboard">
@@ -98,18 +109,47 @@ function DashboardPage({ title, collection }) {
           </p>
         </div>
         <div className="controls">
-          <label htmlFor="date-select">
-            Date:
-            <input
-              id="date-select"
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-            />
-          </label>
-          <button type="button" onClick={() => fetchData()}>
-            Refresh
-          </button>
+          <div className="controls-row">
+            <label htmlFor="scope-select">
+              Scope:
+              <select
+                id="scope-select"
+                value={scope}
+                onChange={(e) => setScope(e.target.value)}
+              >
+                <option value="day">Selected day</option>
+                <option value="all">All data</option>
+              </select>
+            </label>
+          </div>
+          <div className="date-picker">
+            <button
+              type="button"
+              className="date-toggle"
+              onClick={() => setShowCalendar((v) => !v)}
+            >
+              <span>Date: {selectedDate}</span>
+              <span className="date-toggle-icon">▾</span>
+            </button>
+            {showCalendar && (
+              <div className="calendar-popover">
+                <DateCalendar
+                  selectedDate={selectedDate}
+                  availableDates={availableDates}
+                  onChange={(date) => {
+                    setSelectedDate(date);
+                    setScope('day');
+                    setShowCalendar(false);
+                  }}
+                />
+              </div>
+            )}
+          </div>
+          <div>
+            <button type="button" onClick={() => fetchData()}>
+              Refresh
+            </button>
+          </div>
         </div>
       </div>
 
