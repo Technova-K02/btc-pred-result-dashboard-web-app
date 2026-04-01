@@ -204,8 +204,45 @@ router.get('/:collection/timeseries', async (req, res, next) => {
       ]
     };
 
-    const pipeline = [
+    const bestConfidencePipeline = [
       Object.keys(matchStage).length ? { $match: matchStage } : null,
+      {
+        $addFields: {
+          effectivePnl: effectivePnlExpr
+        }
+      },
+      { $sort: { confidence: -1 } },
+      {
+        $setWindowFields: {
+          sortBy: { confidence: -1 },
+          output: {
+            cumulativePnl: {
+              $sum: '$effectivePnl',
+              window: { documents: ['unbounded', 'current'] }
+            }
+          }
+        }
+      },
+      { $sort: { cumulativePnl: -1 } },
+      { $limit: 1 },
+      {
+        $project: {
+          _id: 0,
+          confidence: 1
+        }
+      }
+    ].filter(Boolean);
+
+    const [bestDoc = null] = await collection.aggregate(bestConfidencePipeline).toArray();
+    const threshold = bestDoc ? bestDoc.confidence : null;
+
+    const timeseriesMatch = { ...matchStage };
+    if (threshold != null) {
+      timeseriesMatch.confidence = { $gte: threshold };
+    }
+
+    const pipeline = [
+      Object.keys(timeseriesMatch).length ? { $match: timeseriesMatch } : null,
       {
         $group: {
           _id: {
@@ -257,6 +294,7 @@ router.get('/:collection/timeseries', async (req, res, next) => {
         from: req.query.from || null,
         to: req.query.to || null
       },
+      confidenceThreshold: threshold,
       points
     });
   } catch (err) {
@@ -400,6 +438,109 @@ router.get('/:collection/streaks', async (req, res, next) => {
       },
       maxEarning,
       maxLoss
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/:collection/statistics', async (req, res, next) => {
+  try {
+    const collectionName = getCollectionName(req.params.collection);
+    const db = getDb();
+    const collection = db.collection(collectionName);
+
+    const matchStage = buildTimeRangeMatch(req.query);
+
+    const minConfidence = 0.5;
+    const bucketSize = 0.05;
+    const bucketCount = 10; // 0.50-0.55, ..., 0.95-1.00
+
+    const effectivePnlExpr = {
+      $cond: [
+        { $gt: ['$pnl_multiplier', 0] },
+        { $subtract: ['$pnl_multiplier', 1] },
+        '$pnl_multiplier'
+      ]
+    };
+
+    const pipeline = [
+      Object.keys(matchStage).length ? { $match: matchStage } : null,
+      {
+        $match: {
+          confidence: { $gte: minConfidence, $lte: 1 }
+        }
+      },
+      {
+        $addFields: {
+          bucketIndex: {
+            $floor: {
+              $divide: [
+                { $subtract: ['$confidence', minConfidence] },
+                bucketSize
+              ]
+            }
+          }
+        }
+      },
+      {
+        $match: {
+          bucketIndex: { $gte: 0, $lt: bucketCount }
+        }
+      },
+      {
+        $group: {
+          _id: '$bucketIndex',
+          total: { $sum: 1 },
+          correct: {
+            $sum: {
+              $cond: [{ $eq: ['$is_correct', true] }, 1, 0]
+            }
+          },
+          totalPnl: { $sum: effectivePnlExpr }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          bucketIndex: '$_id',
+          total: 1,
+          correct: 1,
+          totalPnl: 1
+        }
+      },
+      { $sort: { bucketIndex: 1 } }
+    ].filter(Boolean);
+
+    const rows = await collection.aggregate(pipeline).toArray();
+    const byIndex = new Map(rows.map((r) => [r.bucketIndex, r]));
+
+    const buckets = [];
+    for (let i = 0; i < bucketCount; i += 1) {
+      const from = minConfidence + i * bucketSize;
+      const to = from + bucketSize;
+      const row = byIndex.get(i);
+      const total = row ? row.total : 0;
+      const correct = row ? row.correct : 0;
+      const totalPnl = row ? row.totalPnl : 0;
+
+      buckets.push({
+        from,
+        to,
+        total,
+        correct,
+        accuracy: total > 0 ? correct / total : null,
+        totalPnl
+      });
+    }
+
+    res.json({
+      collection: collectionName,
+      range: {
+        from: req.query.from || null,
+        to: req.query.to || null
+      },
+      buckets
     });
   } catch (err) {
     next(err);

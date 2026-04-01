@@ -23,7 +23,7 @@ function TimeseriesChart({ points }) {
 
   return (
     <div className="chart-card">
-      <h3>Accuracy and Total PnL over time</h3>
+      <h3>Best-confidence Accuracy and Total PnL over time</h3>
       <div className="chart-scroll">
         <div className="chart-inner">
           <ResponsiveContainer width="100%" height={260}>

@@ -3,38 +3,69 @@ import PropTypes from 'prop-types';
 import SummaryCards from '../components/SummaryCards.jsx';
 import StreakCards from '../components/StreakCards.jsx';
 import TimeseriesChart from '../components/TimeseriesChart.jsx';
-import TimeseriesTable from '../components/TimeseriesTable.jsx';
+import StatisticsTable from '../components/StatisticsTable.jsx';
 
 function DashboardPage({ title, collection }) {
   const [summary, setSummary] = useState(null);
   const [timeseries, setTimeseries] = useState([]);
-  const [interval, setInterval] = useState('5m');
   const [streaks, setStreaks] = useState(null);
+  const [statistics, setStatistics] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  async function fetchData(selectedInterval = interval) {
+  function buildRangeParams() {
+    if (!selectedDate) {
+      return '';
+    }
+    const base = new Date(`${selectedDate}T00:00:00`);
+    const from = new Date(base);
+    const to = new Date(base);
+    to.setHours(23, 59, 59, 999);
+    const fromIso = from.toISOString();
+    const toIso = to.toISOString();
+    return `from=${encodeURIComponent(fromIso)}&to=${encodeURIComponent(toIso)}`;
+  }
+
+  async function fetchData() {
     setLoading(true);
     setError(null);
 
     try {
-      const summaryRes = await fetch(`/api/${collection}/summary`);
+      const rangeParams = buildRangeParams();
+      const suffix = rangeParams ? `?${rangeParams}` : '';
+
+      const summaryRes = await fetch(`/api/${collection}/summary${suffix}`);
       if (!summaryRes.ok) {
         throw new Error(`Summary request failed with ${summaryRes.status}`);
       }
       const summaryJson = await summaryRes.json();
 
-      const tsRes = await fetch(`/api/${collection}/timeseries?interval=${encodeURIComponent(selectedInterval)}`);
+      const tsRes = await fetch(
+        `/api/${collection}/timeseries?interval=5m${rangeParams ? `&${rangeParams}` : ''}`
+      );
       if (!tsRes.ok) {
         throw new Error(`Timeseries request failed with ${tsRes.status}`);
       }
       const tsJson = await tsRes.json();
 
-      const streaksRes = await fetch(`/api/${collection}/streaks`);
+      const streaksRes = await fetch(`/api/${collection}/streaks${suffix}`);
       if (!streaksRes.ok) {
         throw new Error(`Streaks request failed with ${streaksRes.status}`);
       }
       const streaksJson = await streaksRes.json();
+
+      const statsRes = await fetch(`/api/${collection}/statistics${suffix}`);
+      if (!statsRes.ok) {
+        throw new Error(`Statistics request failed with ${statsRes.status}`);
+      }
+      const statsJson = await statsRes.json();
 
       setSummary(summaryJson.summary);
       setTimeseries(tsJson.points || []);
@@ -42,6 +73,7 @@ function DashboardPage({ title, collection }) {
         maxEarning: streaksJson.maxEarning,
         maxLoss: streaksJson.maxLoss
       });
+      setStatistics(statsJson.buckets || []);
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error(err);
@@ -52,9 +84,9 @@ function DashboardPage({ title, collection }) {
   }
 
   useEffect(() => {
-    fetchData(interval);
+    fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [collection, interval]);
+  }, [collection, selectedDate]);
 
   return (
     <div className="dashboard">
@@ -66,21 +98,16 @@ function DashboardPage({ title, collection }) {
           </p>
         </div>
         <div className="controls">
-          <label htmlFor="interval-select">
-            Interval:
-            <select
-              id="interval-select"
-              value={interval}
-              onChange={(e) => setInterval(e.target.value)}
-            >
-              <option value="5m">5 minutes</option>
-              <option value="15m">15 minutes</option>
-              <option value="1h">1 hour</option>
-              <option value="4h">4 hours</option>
-              <option value="1d">1 day</option>
-            </select>
+          <label htmlFor="date-select">
+            Date:
+            <input
+              id="date-select"
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+            />
           </label>
-          <button type="button" onClick={() => fetchData(interval)}>
+          <button type="button" onClick={() => fetchData()}>
             Refresh
           </button>
         </div>
@@ -100,8 +127,8 @@ function DashboardPage({ title, collection }) {
       </section>
 
       <section className="section">
-        <h3>Performance over time</h3>
-        <TimeseriesTable points={timeseries} />
+        <h3>Statistics by confidence</h3>
+        <StatisticsTable buckets={statistics} />
       </section>
     </div>
   );
