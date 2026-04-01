@@ -7,11 +7,12 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer
+  ResponsiveContainer,
+  ReferenceLine
 } from 'recharts';
 import { formatUtc9AndEdt } from '../utils/time.js';
 
-function TimeseriesChart({ points }) {
+function TimeseriesChart({ points, bestAccuracy }) {
   if (!points || points.length === 0) {
     return null;
   }
@@ -86,6 +87,20 @@ function TimeseriesChart({ points }) {
                 strokeWidth={2}
                 dot={false}
               />
+              {bestAccuracy != null && (
+                <ReferenceLine
+                  yAxisId="right"
+                  y={bestAccuracy * 100}
+                  stroke="#f97316"
+                  strokeDasharray="4 4"
+                  label={{
+                    position: 'insideTopRight',
+                    value: 'Best Conf. Acc.',
+                    fill: '#f97316',
+                    fontSize: 10
+                  }}
+                />
+              )}
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -101,11 +116,13 @@ TimeseriesChart.propTypes = {
       totalPnl: PropTypes.number,
       accuracy: PropTypes.number
     })
-  )
+  ),
+  bestAccuracy: PropTypes.number
 };
 
 TimeseriesChart.defaultProps = {
-  points: []
+  points: [],
+  bestAccuracy: null
 };
 
 export default TimeseriesChart;

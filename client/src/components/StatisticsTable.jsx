@@ -20,11 +20,18 @@ function StatisticsTable({ buckets }) {
     return <div className="empty-state">No statistics for this period.</div>;
   }
 
+  const validPnls = buckets
+    .map((b) => (typeof b.totalPnl === 'number' ? b.totalPnl : null))
+    .filter((v) => v != null);
+  const maxTotalPnl = validPnls.length ? Math.max(...validPnls) : null;
+  const minTotalPnl = validPnls.length ? Math.min(...validPnls) : null;
+
   return (
     <div className="table-wrapper">
       <table className="table">
         <thead>
           <tr>
+            <th>Flag</th>
             <th>Confidence range</th>
             <th>Accuracy</th>
             <th>Correct / Total</th>
@@ -32,16 +39,30 @@ function StatisticsTable({ buckets }) {
           </tr>
         </thead>
         <tbody>
-          {buckets.map((b) => (
-            <tr key={b.from}>
-              <td>{formatRange(b.from, b.to)}</td>
-              <td>{formatPercent(b.accuracy)}</td>
-              <td>
-                {b.correct}/{b.total}
-              </td>
-              <td>{formatNumber(b.totalPnl)}</td>
-            </tr>
-          ))}
+          {buckets.map((b) => {
+            const isBest = maxTotalPnl != null && b.totalPnl === maxTotalPnl;
+            const isWorst = minTotalPnl != null && b.totalPnl === minTotalPnl;
+            let flag = '';
+            if (isBest && isWorst) {
+              flag = 'Best/Worst';
+            } else if (isBest) {
+              flag = 'Best';
+            } else if (isWorst) {
+              flag = 'Worst';
+            }
+            const rowClass = isBest ? 'best-row' : isWorst ? 'worst-row' : '';
+            return (
+              <tr key={b.from} className={rowClass}>
+                <td>{flag}</td>
+                <td>{formatRange(b.from, b.to)}</td>
+                <td>{formatPercent(b.accuracy)}</td>
+                <td>
+                  {b.correct}/{b.total}
+                </td>
+                <td>{formatNumber(b.totalPnl)}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

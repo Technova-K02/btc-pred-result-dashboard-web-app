@@ -163,7 +163,10 @@ function DashboardPage({ title, collection }) {
       </section>
 
       <section className="section">
-        <TimeseriesChart points={timeseries} />
+        <TimeseriesChart
+          points={timeseries}
+          bestAccuracy={summary ? summary.bestConfidenceAccuracy : null}
+        />
       </section>
 
       <section className="section">
