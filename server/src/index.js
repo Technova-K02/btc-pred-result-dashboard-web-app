@@ -1,5 +1,6 @@
 require('dotenv').config();
 
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
@@ -22,6 +23,19 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api', statsRouter);
 app.use('/api/metrics', metricsRouter);
+
+// Serve built React frontend (client/dist) as a normal static app
+const clientDist = path.join(__dirname, '../../client/dist');
+app.use(express.static(clientDist));
+
+// SPA fallback for any non-API route
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    next();
+    return;
+  }
+  res.sendFile(path.join(clientDist, 'index.html'));
+});
 
 // Global error handler
 // eslint-disable-next-line no-unused-vars

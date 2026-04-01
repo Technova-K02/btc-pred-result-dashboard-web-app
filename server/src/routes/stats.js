@@ -40,6 +40,14 @@ function buildTimeRangeMatch(query) {
   return { anchor_ts: timeFilter };
 }
 
+function toUtc9DateString(date) {
+  const d = new Date(date.getTime() + 9 * 60 * 60 * 1000);
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(d.getUTCDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 router.get('/:collection/summary', async (req, res, next) => {
   try {
     const collectionName = getCollectionName(req.params.collection);
@@ -250,7 +258,7 @@ router.get('/:collection/timeseries', async (req, res, next) => {
               date: '$anchor_ts',
               unit: intervalConfig.unit,
               binSize: intervalConfig.binSize,
-              timezone: 'UTC'
+              timezone: 'Asia/Tokyo'
             }
           },
           total: { $sum: 1 },
@@ -563,7 +571,7 @@ router.get('/:collection/dates', async (req, res, next) => {
             $dateTrunc: {
               date: '$anchor_ts',
               unit: 'day',
-              timezone: 'UTC'
+              timezone: 'Asia/Tokyo'
             }
           }
         }
@@ -573,7 +581,7 @@ router.get('/:collection/dates', async (req, res, next) => {
 
     const docs = await collection.aggregate(pipeline).toArray();
     const dates = docs
-      .map((d) => (d._id instanceof Date ? d._id.toISOString().slice(0, 10) : null))
+      .map((d) => (d._id instanceof Date ? toUtc9DateString(d._id) : null))
       .filter(Boolean);
 
     res.json({
