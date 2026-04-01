@@ -40,6 +40,19 @@ body {
   flex-direction: column;
 }
 
+.app-logo-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.app-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.9);
+}
+
 .app-header h1 {
   margin: 0;
   font-size: 1.7rem;
