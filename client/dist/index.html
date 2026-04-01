@@ -1,0 +1,12 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"/><title>BTC Prediction Dashboard</title><meta name="viewport" content="width=device-width,initial-scale=1"/></head><body><div id="root"></div><script>// Polyfill for older browsers that lack crypto.randomUUID
+      if (!window.crypto || typeof window.crypto.randomUUID !== 'function') {
+        window.crypto = window.crypto || {};
+        window.crypto.randomUUID = function randomUUID() {
+          const template = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx';
+          return template.replace(/[xy]/g, (c) => {
+            const r = (Math.random() * 16) | 0;
+            const v = c === 'x' ? r : (r & 0x3) | 0x8;
+            return v.toString(16);
+          });
+        };
+      }</script><script type="module" src="/src/main.jsx"></script><script defer="defer" src="/bundle.f5b87b855de7d3fb7d12.js"></script></body></html>

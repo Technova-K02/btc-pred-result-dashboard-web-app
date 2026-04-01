@@ -13,10 +13,12 @@ function DashboardPage({ title, collection }) {
   const [statistics, setStatistics] = useState([]);
   const [scope, setScope] = useState('day'); // 'day' | 'all'
   const [selectedDate, setSelectedDate] = useState(() => {
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
+    // Today in UTC+9 regardless of browser timezone
+    const now = new Date();
+    const utc9 = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+    const yyyy = utc9.getUTCFullYear();
+    const mm = String(utc9.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(utc9.getUTCDate()).padStart(2, '0');
     return `${yyyy}-${mm}-${dd}`;
   });
   const [loading, setLoading] = useState(false);
@@ -28,10 +30,8 @@ function DashboardPage({ title, collection }) {
     if (scope !== 'day' || !selectedDate) {
       return '';
     }
-    const base = new Date(`${selectedDate}T00:00:00`);
-    const from = new Date(base);
-    const to = new Date(base);
-    to.setHours(23, 59, 59, 999);
+    const from = new Date(`${selectedDate}T00:00:00+09:00`);
+    const to = new Date(`${selectedDate}T23:59:59.999+09:00`);
     const fromIso = from.toISOString();
     const toIso = to.toISOString();
     return `from=${encodeURIComponent(fromIso)}&to=${encodeURIComponent(toIso)}`;
