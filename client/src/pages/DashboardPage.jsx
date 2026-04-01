@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import SummaryCards from '../components/SummaryCards.jsx';
 import StreakCards from '../components/StreakCards.jsx';
@@ -24,7 +24,7 @@ function DashboardPage({ title, collection }) {
   const [availableDates, setAvailableDates] = useState([]);
   const [showCalendar, setShowCalendar] = useState(false);
 
-  function buildRangeParams() {
+  const buildRangeParams = useCallback(() => {
     if (scope !== 'day' || !selectedDate) {
       return '';
     }
@@ -35,9 +35,9 @@ function DashboardPage({ title, collection }) {
     const fromIso = from.toISOString();
     const toIso = to.toISOString();
     return `from=${encodeURIComponent(fromIso)}&to=${encodeURIComponent(toIso)}`;
-  }
+  }, [scope, selectedDate]);
 
-  async function fetchData() {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -92,12 +92,18 @@ function DashboardPage({ title, collection }) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [buildRangeParams, collection]);
 
   useEffect(() => {
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [collection, selectedDate, scope]);
+  }, [fetchData]);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      fetchData();
+    }, 5 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [fetchData]);
 
   return (
     <div className="dashboard">

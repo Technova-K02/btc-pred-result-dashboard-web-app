@@ -1,13 +1,17 @@
 import { NavLink, Route, Routes, Navigate } from 'react-router-dom';
 import ResultsDashboard from './pages/ResultsDashboard.jsx';
 import TestResultsDashboard from './pages/TestResultsDashboard.jsx';
+import VisitorStats from './components/VisitorStats.jsx';
 
 function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>BTC Prediction Dashboard</h1>
-        <p>Explore performance of your live and test prediction runs</p>
+        <div className="app-header-main">
+          <h1>BTC Prediction Dashboard</h1>
+          <p>Explore performance of your live and test prediction runs</p>
+        </div>
+        <VisitorStats />
       </header>
 
       <nav className="app-nav">

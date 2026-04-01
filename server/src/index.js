@@ -6,6 +6,7 @@ const morgan = require('morgan');
 
 const { connectToDb } = require('./db');
 const statsRouter = require('./routes/stats');
+const metricsRouter = require('./routes/metrics');
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api', statsRouter);
+app.use('/api/metrics', metricsRouter);
 
 // Global error handler
 // eslint-disable-next-line no-unused-vars
