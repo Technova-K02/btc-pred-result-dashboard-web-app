@@ -14,7 +14,7 @@ function StreakCards({ streaks }) {
   const { maxEarning, maxLoss } = streaks;
 
   return (
-    <div className="summary-grid">
+    <div className="streak-grid">
       <div className="card">
         <div className="card-label">Max Earning Period</div>
         {maxEarning ? (

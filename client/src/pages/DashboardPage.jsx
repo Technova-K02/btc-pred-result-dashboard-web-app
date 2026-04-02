@@ -4,38 +4,48 @@ import SummaryCards from '../components/SummaryCards.jsx';
 import StreakCards from '../components/StreakCards.jsx';
 import TimeseriesChart from '../components/TimeseriesChart.jsx';
 import StatisticsTable from '../components/StatisticsTable.jsx';
-import DateCalendar from '../components/DateCalendar.jsx';
+import DailyPnlTable from '../components/DailyPnlTable.jsx';
 
 function DashboardPage({ title, collection }) {
   const [summary, setSummary] = useState(null);
   const [timeseries, setTimeseries] = useState([]);
   const [streaks, setStreaks] = useState(null);
   const [statistics, setStatistics] = useState([]);
-  const [scope, setScope] = useState('day'); // 'day' | 'all'
-  const [selectedDate, setSelectedDate] = useState(() => {
-    // Today in UTC+9 regardless of browser timezone
+  const [scope, setScope] = useState('range'); // 'range' | 'all'
+  const [dailyPnlRows, setDailyPnlRows] = useState([]);
+  const [thresholdText, setThresholdText] = useState('0.70');
+
+  const [fromText, setFromText] = useState(() => {
     const now = new Date();
     const utc9 = new Date(now.getTime() + 9 * 60 * 60 * 1000);
     const yyyy = utc9.getUTCFullYear();
     const mm = String(utc9.getUTCMonth() + 1).padStart(2, '0');
     const dd = String(utc9.getUTCDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
+    return `${yyyy}-${mm}-${dd}T00:00`;
   });
+
+  const [toText, setToText] = useState(() => {
+    const now = new Date();
+    const utc9 = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+    const yyyy = utc9.getUTCFullYear();
+    const mm = String(utc9.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(utc9.getUTCDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}T23:59`;
+  });
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [availableDates, setAvailableDates] = useState([]);
-  const [showCalendar, setShowCalendar] = useState(false);
 
   const buildRangeParams = useCallback(() => {
-    if (scope !== 'day' || !selectedDate) {
+    if (scope !== 'range' || !fromText || !toText) {
       return '';
     }
-    const from = new Date(`${selectedDate}T00:00:00+09:00`);
-    const to = new Date(`${selectedDate}T23:59:59.999+09:00`);
+    const from = new Date(`${fromText}:00+09:00`);
+    const to = new Date(`${toText}:59.999+09:00`);
     const fromIso = from.toISOString();
     const toIso = to.toISOString();
     return `from=${encodeURIComponent(fromIso)}&to=${encodeURIComponent(toIso)}`;
-  }, [scope, selectedDate]);
+  }, [scope, fromText, toText]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -44,6 +54,12 @@ function DashboardPage({ title, collection }) {
     try {
       const rangeParams = buildRangeParams();
       const suffix = rangeParams ? `?${rangeParams}` : '';
+
+      const parsedThreshold = Number.parseFloat(thresholdText);
+      const hasValidThreshold = Number.isFinite(parsedThreshold);
+      const thresholdParam = hasValidThreshold
+        ? `threshold=${encodeURIComponent(parsedThreshold)}`
+        : '';
 
       const summaryRes = await fetch(`/api/${collection}/summary${suffix}`);
       if (!summaryRes.ok) {
@@ -71,11 +87,13 @@ function DashboardPage({ title, collection }) {
       }
       const statsJson = await statsRes.json();
 
-      const datesRes = await fetch(`/api/${collection}/dates`);
-      if (!datesRes.ok) {
-        throw new Error(`Dates request failed with ${datesRes.status}`);
+      const dailyParams = [thresholdParam].filter(Boolean).join('&');
+      const dailySuffix = dailyParams ? `?${dailyParams}` : '';
+      const dailyRes = await fetch(`/api/${collection}/daily-pnl${dailySuffix}`);
+      if (!dailyRes.ok) {
+        throw new Error(`Daily PnL request failed with ${dailyRes.status}`);
       }
-      const datesJson = await datesRes.json();
+      const dailyJson = await dailyRes.json();
 
       setSummary(summaryJson.summary);
       setTimeseries(tsJson.points || []);
@@ -84,7 +102,7 @@ function DashboardPage({ title, collection }) {
         maxLoss: streaksJson.maxLoss
       });
       setStatistics(statsJson.buckets || []);
-      setAvailableDates(datesJson.dates || []);
+      setDailyPnlRows(dailyJson.days || []);
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error(err);
@@ -92,7 +110,7 @@ function DashboardPage({ title, collection }) {
     } finally {
       setLoading(false);
     }
-  }, [buildRangeParams, collection]);
+  }, [buildRangeParams, collection, thresholdText]);
 
   useEffect(() => {
     fetchData();
@@ -123,34 +141,37 @@ function DashboardPage({ title, collection }) {
                 value={scope}
                 onChange={(e) => setScope(e.target.value)}
               >
-                <option value="day">Selected day</option>
+                <option value="range">Range (UTC+9)</option>
                 <option value="all">All data</option>
               </select>
             </label>
           </div>
-          <div className="date-picker">
-            <button
-              type="button"
-              className="date-toggle"
-              onClick={() => setShowCalendar((v) => !v)}
-            >
-              <span>Date: {selectedDate}</span>
-              <span className="date-toggle-icon">▾</span>
-            </button>
-            {showCalendar && (
-              <div className="calendar-popover">
-                <DateCalendar
-                  selectedDate={selectedDate}
-                  availableDates={availableDates}
-                  onChange={(date) => {
-                    setSelectedDate(date);
-                    setScope('day');
-                    setShowCalendar(false);
-                  }}
-                />
+          {scope === 'range' && (
+            <>
+              <div className="controls-row">
+                <label htmlFor="from-dt">
+                  From (UTC+9):
+                  <input
+                    id="from-dt"
+                    type="datetime-local"
+                    value={fromText}
+                    onChange={(e) => setFromText(e.target.value)}
+                  />
+                </label>
               </div>
-            )}
-          </div>
+              <div className="controls-row">
+                <label htmlFor="to-dt">
+                  To (UTC+9):
+                  <input
+                    id="to-dt"
+                    type="datetime-local"
+                    value={toText}
+                    onChange={(e) => setToText(e.target.value)}
+                  />
+                </label>
+              </div>
+            </>
+          )}
           <div>
             <button type="button" onClick={() => fetchData()}>
               Refresh
@@ -178,6 +199,27 @@ function DashboardPage({ title, collection }) {
       <section className="section">
         <h3>Statistics by confidence</h3>
         <StatisticsTable buckets={statistics} />
+      </section>
+
+      <section className="section">
+        <div className="section-header">
+          <h3>Daily total PnL at threshold</h3>
+          <div className="controls-row">
+            <label htmlFor="threshold-input">
+              Confidence threshold (≥):
+              <input
+                id="threshold-input"
+                type="number"
+                min="0"
+                max="1"
+                step="0.01"
+                value={thresholdText}
+                onChange={(e) => setThresholdText(e.target.value)}
+              />
+            </label>
+          </div>
+        </div>
+        <DailyPnlTable rows={dailyPnlRows} />
       </section>
     </div>
   );

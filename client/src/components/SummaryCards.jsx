@@ -2,7 +2,9 @@ import PropTypes from 'prop-types';
 
 function formatPercent(value) {
   if (value == null) return '–';
-  return `${(value * 100).toFixed(2)}%`;
+  const pct = value * 100;
+  const rounded = Number.isFinite(pct) ? Math.round(pct) : 0;
+  return `${rounded}% (${rounded}/100)`;
 }
 
 function formatNumber(value, digits = 2) {
@@ -41,7 +43,7 @@ function SummaryCards({ summary }) {
 
       <div className="card">
         <div className="card-label">Best Confidence</div>
-        <div className="card-value">{formatNumber(bestConfidence)}</div>
+        <div className="card-value">{formatNumber(bestConfidence, 4)}</div>
       </div>
 
       <div className="card">

@@ -165,7 +165,8 @@ label {
 }
 
 select,
-button {
+button,
+input[type='number'] {
   background: #020617;
   color: #e5e7eb;
   border-radius: 999px;
@@ -285,7 +286,14 @@ button:hover {
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+
+.streak-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
   margin-bottom: 1.75rem;
 }
@@ -326,6 +334,18 @@ button:hover {
 .section h3 {
   margin: 0 0 0.75rem;
   font-size: 1rem;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.section-header h3 {
+  margin: 0;
 }
 
 .chart-card {
@@ -449,6 +469,14 @@ code {
   .controls {
     align-self: stretch;
     justify-content: space-between;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .streak-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
