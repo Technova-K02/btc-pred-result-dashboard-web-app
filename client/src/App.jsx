@@ -15,7 +15,19 @@ function App() {
           </div>
           <p>Explore performance of your live and test prediction runs</p>
         </div>
-        <VisitorStats />
+        <div className="app-header-actions">
+          <button
+            type="button"
+            className="goto-button"
+            onClick={() => {
+              window.location.href = 'https://potent-pendragonish-kayleen.ngrok-free.dev/';
+            }}
+          >
+            <span>Go To</span>
+            <span aria-hidden="true">→</span>
+          </button>
+          <VisitorStats />
+        </div>
       </header>
 
       <nav className="app-nav">
