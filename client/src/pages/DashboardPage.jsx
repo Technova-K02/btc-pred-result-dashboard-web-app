@@ -224,7 +224,7 @@ function DashboardPage({ title, collection }) {
 
 DashboardPage.propTypes = {
   title: PropTypes.string.isRequired,
-  collection: PropTypes.oneOf(['results', 'test_results']).isRequired
+  collection: PropTypes.oneOf(['results', 'test_results', 'test_results_coinbase']).isRequired
 };
 
 export default DashboardPage;
