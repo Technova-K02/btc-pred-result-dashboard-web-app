@@ -1,12 +1,5 @@
 import PropTypes from 'prop-types';
 
-function formatPercent(value) {
-  if (value == null) return '–';
-  const pct = value * 100;
-  const rounded = Number.isFinite(pct) ? Math.round(pct) : 0;
-  return `${rounded}% (${rounded}/100)`;
-}
-
 function formatNumber(value, digits = 2) {
   if (value == null) return '–';
   return Number(value).toFixed(digits);
@@ -20,8 +13,17 @@ function SummaryCards({ summary }) {
     totalPnl,
     bestConfidence,
     bestConfidenceTotalPnl,
-    bestConfidenceAccuracy
+    bestConfidenceAccuracy,
+    bestConfidenceTotal,
+    bestConfidenceCorrect
   } = summary || {};
+
+  const accuracyPct =
+    accuracy != null && Number.isFinite(accuracy) ? Math.round(accuracy * 100) : null;
+  const bestAccuracyPct =
+    bestConfidenceAccuracy != null && Number.isFinite(bestConfidenceAccuracy)
+      ? Math.round(bestConfidenceAccuracy * 100)
+      : null;
 
   return (
     <div className="summary-grid">
@@ -33,7 +35,11 @@ function SummaryCards({ summary }) {
 
       <div className="card">
         <div className="card-label">Accuracy</div>
-        <div className="card-value">{formatPercent(accuracy)}</div>
+        <div className="card-value">
+          {accuracyPct == null
+            ? '–'
+            : `${accuracyPct}% (${correct ?? 0}/${total ?? 0})`}
+        </div>
       </div>
 
       <div className="card">
@@ -48,7 +54,11 @@ function SummaryCards({ summary }) {
 
       <div className="card">
         <div className="card-label">Best Confidence Accuracy</div>
-        <div className="card-value">{formatPercent(bestConfidenceAccuracy)}</div>
+        <div className="card-value">
+          {bestAccuracyPct == null
+            ? '–'
+            : `${bestAccuracyPct}% (${bestConfidenceCorrect ?? 0}/${bestConfidenceTotal ?? 0})`}
+        </div>
       </div>
 
       <div className="card">
@@ -67,7 +77,9 @@ SummaryCards.propTypes = {
     totalPnl: PropTypes.number,
     bestConfidence: PropTypes.number,
     bestConfidenceTotalPnl: PropTypes.number,
-    bestConfidenceAccuracy: PropTypes.number
+    bestConfidenceAccuracy: PropTypes.number,
+    bestConfidenceTotal: PropTypes.number,
+    bestConfidenceCorrect: PropTypes.number
   })
 };
 
