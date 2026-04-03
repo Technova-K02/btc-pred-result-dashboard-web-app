@@ -390,20 +390,25 @@ button:active {
 .threshold-summary-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
+  gap: 1.25rem;
+  padding: 0.6rem 0.9rem;
+  margin-bottom: 0.85rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.16), transparent 70%),
+    radial-gradient(circle at bottom right, rgba(129, 140, 248, 0.18), transparent 75%),
+    rgba(15, 23, 42, 0.98);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.9);
 }
 
 .threshold-summary-item {
   display: flex;
-  align-items: baseline;
-  gap: 0.35rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.45);
-  background:
-    radial-gradient(circle at top left, rgba(56, 189, 248, 0.2), transparent 70%),
-    rgba(15, 23, 42, 0.95);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  min-width: 0;
+  flex: 1 1 140px;
 }
 
 .threshold-summary-label {
@@ -417,6 +422,11 @@ button:active {
   font-size: 0.9rem;
   font-weight: 500;
   color: #e5e7eb;
+}
+
+.threshold-summary-sub {
+  font-size: 0.78rem;
+  color: #9ca3af;
 }
 
 .chart-card {
@@ -487,6 +497,14 @@ button:active {
 
 .table tbody tr.worst-row {
   background: radial-gradient(circle at left, rgba(239, 68, 68, 0.22), rgba(15, 23, 42, 0.9));
+}
+
+.table tbody tr.clickable-row {
+  cursor: pointer;
+}
+
+.table tbody tr.clickable-row:hover {
+  filter: brightness(1.05);
 }
 
 .empty-state,

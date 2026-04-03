@@ -5,6 +5,15 @@ import StreakCards from '../components/StreakCards.jsx';
 import TimeseriesChart from '../components/TimeseriesChart.jsx';
 import StatisticsTable from '../components/StatisticsTable.jsx';
 import DailyPnlTable from '../components/DailyPnlTable.jsx';
+import RankedPeriodsTable from '../components/RankedPeriodsTable.jsx';
+import { formatUtc9AndEdt } from '../utils/time.js';
+
+function formatUtc9Only(iso) {
+  const full = formatUtc9AndEdt(iso, { includeDate: true });
+  if (!full) return '';
+  const idx = full.indexOf(' [');
+  return idx === -1 ? full : full.slice(0, idx);
+}
 
 function DashboardPage({ title, collection }) {
   const [summary, setSummary] = useState(null);
@@ -15,6 +24,10 @@ function DashboardPage({ title, collection }) {
   const [dailyPnlRows, setDailyPnlRows] = useState([]);
   const [thresholdText, setThresholdText] = useState('0.70');
   const [maxRisk, setMaxRisk] = useState(null);
+  const [trough, setTrough] = useState(null);
+  const [periods, setPeriods] = useState([]);
+  const [selectedHour, setSelectedHour] = useState(null);
+  const [periodDetails, setPeriodDetails] = useState([]);
 
   const [fromText, setFromText] = useState(() => {
     const now = new Date();
@@ -96,6 +109,13 @@ function DashboardPage({ title, collection }) {
       }
       const dailyJson = await dailyRes.json();
 
+      const periodsSuffix = thresholdParam ? `?${thresholdParam}` : '';
+      const periodsRes = await fetch(`/api/${collection}/periods-of-day${periodsSuffix}`);
+      if (!periodsRes.ok) {
+        throw new Error(`Periods-of-day request failed with ${periodsRes.status}`);
+      }
+      const periodsJson = await periodsRes.json();
+
       const riskSuffix = thresholdParam ? `?${thresholdParam}` : '';
       const riskRes = await fetch(`/api/${collection}/streaks${riskSuffix}`);
       if (!riskRes.ok) {
@@ -111,7 +131,9 @@ function DashboardPage({ title, collection }) {
       });
       setStatistics(statsJson.buckets || []);
       setDailyPnlRows(dailyJson.days || []);
-      setMaxRisk(riskJson.maxLoss ? riskJson.maxLoss.totalPnl : null);
+      setMaxRisk(riskJson.maxLoss || null);
+      setTrough(riskJson.minCumulative || null);
+      setPeriods(periodsJson.periods || []);
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error(err);
@@ -148,6 +170,16 @@ function DashboardPage({ title, collection }) {
 
   const thresholdAccuracy =
     thresholdTotals.total > 0 ? thresholdTotals.correct / thresholdTotals.total : null;
+
+  const maxRiskPeriod =
+    maxRisk && maxRisk.start_ts && maxRisk.end_ts
+      ? `${formatUtc9Only(maxRisk.start_ts)} → ${formatUtc9Only(maxRisk.end_ts)}`
+      : null;
+
+  const troughText =
+    trough && typeof trough.totalPnl === 'number'
+      ? `${trough.totalPnl.toFixed(2)} @ ${formatUtc9Only(trough.ts)}`
+      : null;
 
   return (
     <div className="dashboard">
@@ -262,11 +294,72 @@ function DashboardPage({ title, collection }) {
           <div className="threshold-summary-item">
             <span className="threshold-summary-label">Max risk</span>
             <span className="threshold-summary-value">
-              {maxRisk == null ? '–' : maxRisk.toFixed(2)}
+              {maxRisk == null ? '–' : maxRisk.totalPnl.toFixed(2)}
             </span>
+            {maxRiskPeriod && (
+              <span className="threshold-summary-sub">{maxRiskPeriod}</span>
+            )}
+            {troughText && (
+              <span className="threshold-summary-sub">PnL at trough: {troughText}</span>
+            )}
           </div>
         </div>
         <DailyPnlTable rows={dailyPnlRows} />
+      </section>
+
+      <section className="section">
+        {selectedHour == null ? (
+          <>
+            <h3>Best time-of-day across all days</h3>
+            <RankedPeriodsTable
+              rows={periods}
+              limit={24}
+              onSelectHour={async (hour) => {
+                setSelectedHour(hour);
+                try {
+                  const parsedThreshold = Number.parseFloat(thresholdText);
+                  const hasValidThreshold = Number.isFinite(parsedThreshold);
+                  const parts = [`hour=${hour}`];
+                  if (hasValidThreshold) {
+                    parts.push(`threshold=${encodeURIComponent(parsedThreshold)}`);
+                  }
+                  const qs = parts.length ? `?${parts.join('&')}` : '';
+                  const res = await fetch(`/api/${collection}/periods-of-day/detail${qs}`);
+                  if (!res.ok) {
+                    throw new Error(`Detail periods request failed with ${res.status}`);
+                  }
+                  const json = await res.json();
+                  setPeriodDetails(json.rows || []);
+                } catch (err) {
+                  // eslint-disable-next-line no-console
+                  console.error(err);
+                  setPeriodDetails([]);
+                }
+              }}
+            />
+          </>
+        ) : (
+          <>
+            <div className="section-header">
+              <h3>
+                Daily performance for{' '}
+                {`${String(selectedHour).padStart(2, '0')}:00 ~ ${String(
+                  (selectedHour + 1) % 24
+                ).padStart(2, '0')}:00 (UTC+9)`}
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedHour(null);
+                  setPeriodDetails([]);
+                }}
+              >
+                Back to all periods
+              </button>
+            </div>
+            <DailyPnlTable rows={periodDetails} />
+          </>
+        )}
       </section>
     </div>
   );
