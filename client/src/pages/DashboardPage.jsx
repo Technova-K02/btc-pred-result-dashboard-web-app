@@ -14,6 +14,7 @@ function DashboardPage({ title, collection }) {
   const [scope, setScope] = useState('range'); // 'range' | 'all'
   const [dailyPnlRows, setDailyPnlRows] = useState([]);
   const [thresholdText, setThresholdText] = useState('0.70');
+  const [maxRisk, setMaxRisk] = useState(null);
 
   const [fromText, setFromText] = useState(() => {
     const now = new Date();
@@ -95,6 +96,13 @@ function DashboardPage({ title, collection }) {
       }
       const dailyJson = await dailyRes.json();
 
+      const riskSuffix = thresholdParam ? `?${thresholdParam}` : '';
+      const riskRes = await fetch(`/api/${collection}/streaks${riskSuffix}`);
+      if (!riskRes.ok) {
+        throw new Error(`Risk streaks request failed with ${riskRes.status}`);
+      }
+      const riskJson = await riskRes.json();
+
       setSummary(summaryJson.summary);
       setTimeseries(tsJson.points || []);
       setStreaks({
@@ -103,6 +111,7 @@ function DashboardPage({ title, collection }) {
       });
       setStatistics(statsJson.buckets || []);
       setDailyPnlRows(dailyJson.days || []);
+      setMaxRisk(riskJson.maxLoss ? riskJson.maxLoss.totalPnl : null);
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error(err);
@@ -122,6 +131,23 @@ function DashboardPage({ title, collection }) {
     }, 2 * 60 * 1000);
     return () => clearInterval(id);
   }, [fetchData]);
+
+  const thresholdTotals = dailyPnlRows.reduce(
+    (acc, day) => {
+      const total = typeof day.total === 'number' ? day.total : 0;
+      const correct = typeof day.correct === 'number' ? day.correct : 0;
+      const pnl = typeof day.totalPnl === 'number' ? day.totalPnl : 0;
+      return {
+        total: acc.total + total,
+        correct: acc.correct + correct,
+        totalPnl: acc.totalPnl + pnl
+      };
+    },
+    { total: 0, correct: 0, totalPnl: 0 }
+  );
+
+  const thresholdAccuracy =
+    thresholdTotals.total > 0 ? thresholdTotals.correct / thresholdTotals.total : null;
 
   return (
     <div className="dashboard">
@@ -214,6 +240,30 @@ function DashboardPage({ title, collection }) {
                 onChange={(e) => setThresholdText(e.target.value)}
               />
             </label>
+          </div>
+        </div>
+        <div className="threshold-summary-row">
+          <div className="threshold-summary-item">
+            <span className="threshold-summary-label">Total accuracy</span>
+            <span className="threshold-summary-value">
+              {thresholdAccuracy == null
+                ? '–'
+                : `${(thresholdAccuracy * 100).toFixed(1)}% (${thresholdTotals.correct}/${
+                    thresholdTotals.total
+                  })`}
+            </span>
+          </div>
+          <div className="threshold-summary-item">
+            <span className="threshold-summary-label">Total PnL</span>
+            <span className="threshold-summary-value">
+              {thresholdTotals.totalPnl.toFixed(2)}
+            </span>
+          </div>
+          <div className="threshold-summary-item">
+            <span className="threshold-summary-label">Max risk</span>
+            <span className="threshold-summary-value">
+              {maxRisk == null ? '–' : maxRisk.toFixed(2)}
+            </span>
           </div>
         </div>
         <DailyPnlTable rows={dailyPnlRows} />

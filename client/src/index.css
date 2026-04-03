@@ -387,6 +387,38 @@ button:active {
   margin: 0;
 }
 
+.threshold-summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.threshold-summary-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.2), transparent 70%),
+    rgba(15, 23, 42, 0.95);
+}
+
+.threshold-summary-label {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #9ca3af;
+}
+
+.threshold-summary-value {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #e5e7eb;
+}
+
 .chart-card {
   background:
     linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.92)),
